@@ -14,6 +14,11 @@ class UNREALCOURSE_API ACCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+protected:
+
+	UPROPERTY(EditAnywhere);
+	TSubclassOf<AActor> ProjectileClass;
+
 public:
 	// Sets default values for this character's properties
 	ACCharacter();
@@ -30,6 +35,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	void MoveForward(float Value);
+	void MoveRight(float Value);
+	void PrimaryAttack();
+	void Jump();
 
 public:	
 	// Called every frame
