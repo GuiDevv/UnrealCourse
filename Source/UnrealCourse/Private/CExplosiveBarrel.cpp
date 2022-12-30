@@ -4,7 +4,10 @@
 #include "CExplosiveBarrel.h"
 
 #include "Components/SphereComponent.h"
+#include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/RadialForceComponent.h"
 
 // Sets default values
 ACExplosiveBarrel::ACExplosiveBarrel()
@@ -13,11 +16,16 @@ ACExplosiveBarrel::ACExplosiveBarrel()
 	PrimaryActorTick.bCanEverTick = true;
 
 	StaticComp = CreateDefaultSubobject<UStaticMeshComponent>("StaticMesh");
-	StaticComp->OnComponentBeginOverlap.AddDynamic(this, &ACExplosiveBarrel::OnOverlapBegin);
+	RootComponent = StaticComp;
 
-	EffectComp = CreateDefaultSubobject<UParticleSystemComponent>("ExplosionParticle");
-	EffectComp->SetupAttachment(StaticComp);
+	ForceComp = CreateDefaultSubobject<URadialForceComponent>("Force Component");
+	ForceComp->SetupAttachment(StaticComp);
 
+	ForceComp->SetAutoActivate(false);
+	ForceComp->Radius = 750.0f;
+	ForceComp->ForceStrength = 2500.0f;
+	ForceComp->bImpulseVelChange = true;
+	ForceComp->AddCollisionChannelToAffect(ECC_WorldDynamic);
 }
 
 // Called when the game starts or when spawned
@@ -27,8 +35,29 @@ void ACExplosiveBarrel::BeginPlay()
 	
 }
 
-void ACExplosiveBarrel::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ACExplosiveBarrel::PostInitializeComponents()
 {
+	Super::PostInitializeComponents();
+
+	StaticComp->OnComponentHit.AddDynamic(this, &ACExplosiveBarrel::OnActorHit);
+
+}
+
+void ACExplosiveBarrel::OnActorHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpact, const FHitResult& SweepResult)
+{
+	FVector ExplosionLocation = GetActorLocation() + FVector(0, 0, 70);
+	FTransform ExplosionTransform = FTransform(GetActorRotation(), ExplosionLocation, FVector(2, 2, 2));
+
+	UParticleSystemComponent* MyParticles = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, ExplosionTransform);
+
+	ForceComp->FireImpulse();
+
+	UE_LOG(LogTemp, Log, TEXT("On Actor Hit in Explosive Barrel"));
+	UE_LOG(LogTemp, Warning, TEXT("OtherActor: %s, at game time: %f"), *GetNameSafe(OtherActor), GetWorld()->TimeSeconds);
+
+	FString StringMessage = FString::Printf(TEXT("Hit at Location: %s"), *SweepResult.ImpactPoint.ToString());
+	DrawDebugString(GetWorld(), SweepResult.ImpactPoint, StringMessage, nullptr, FColor::Green, 2.0f, true);
+
 	Destroy();
 }
 

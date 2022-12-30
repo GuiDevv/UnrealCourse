@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "CExplosiveBarrel.generated.h"
 
-class USphereComponent;
+class URadialForceComponent;
 
 UCLASS()
 class UNREALCOURSE_API ACExplosiveBarrel : public AActor
@@ -19,18 +19,20 @@ public:
 
 protected:
 
-	UPROPERTY(VisibleAnywhere);
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly);
 	UStaticMeshComponent* StaticComp;
 	UPROPERTY(VisibleAnywhere);
-	USphereComponent* SphereComp;
-	UPROPERTY(VisibleAnywhere)
-	UParticleSystemComponent* EffectComp;
+	URadialForceComponent* ForceComp;
+	UPROPERTY(EditDefaultsOnly, Category="VFX")
+	UParticleSystem* ExplosionEffect;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
 
+	//Must be marked with UFUNCTION in order to 'bind' the event
 	UFUNCTION()
-	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnActorHit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpact, const FHitResult& SweepResult);
 
 public:	
 	// Called every frame
