@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "CAttributeComponent.h"
 
 // Sets default values
 ACMagicProjectile::ACMagicProjectile()
@@ -19,6 +20,22 @@ void ACMagicProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void ACMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+	if (OtherActor && OtherActor != GetInstigator())
+	{
+		UCAttributeComponent* Attibute = Cast<UCAttributeComponent>(OtherActor->GetComponentByClass(UCAttributeComponent::StaticClass()));
+
+		if (Attibute)
+		{
+			Attibute->ApplyHealthChange(Damage);
+		}
+	}
+
+	Super::OnActorOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 }
 
 // Called every frame

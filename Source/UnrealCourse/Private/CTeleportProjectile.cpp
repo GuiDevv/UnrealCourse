@@ -25,7 +25,10 @@ void ACTeleportProjectile::ExplodeProjectile()
 
 void ACTeleportProjectile::TeleportPlayer()
 {
-	GetInstigator()->SetActorLocation(GetActorLocation());
+	AActor* TargetToTeleport = GetInstigator();
+
+	if(TargetToTeleport)
+		TargetToTeleport->TeleportTo(GetActorLocation(), TargetToTeleport->GetActorRotation(), false, false);
 }
 
 void ACTeleportProjectile::BeginPlay()
@@ -46,4 +49,14 @@ void ACTeleportProjectile::OnActorHit(UPrimitiveComponent* OverlappedComp, AActo
 		GetWorldTimerManager().ClearTimer(TeleportHandle);
 
 	TeleportPlayer();
+}
+
+void ACTeleportProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+
+}
+
+void ACTeleportProjectile::OnProjectileOverlap_Implementation()
+{
+	Super::OnProjectileOverlap_Implementation();
 }

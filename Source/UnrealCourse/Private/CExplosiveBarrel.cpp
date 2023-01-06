@@ -3,6 +3,7 @@
 
 #include "CExplosiveBarrel.h"
 
+#include "CAttributeComponent.h"
 #include "Components/SphereComponent.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -26,6 +27,8 @@ ACExplosiveBarrel::ACExplosiveBarrel()
 	ForceComp->ForceStrength = 2500.0f;
 	ForceComp->bImpulseVelChange = true;
 	ForceComp->AddCollisionChannelToAffect(ECC_WorldDynamic);
+
+	StaticComp->SetCollisionObjectType(ECC_Destructible);
 }
 
 // Called when the game starts or when spawned
@@ -57,6 +60,13 @@ void ACExplosiveBarrel::OnActorHit(UPrimitiveComponent* OverlappedComp, AActor* 
 
 	FString StringMessage = FString::Printf(TEXT("Hit at Location: %s"), *SweepResult.ImpactPoint.ToString());
 	DrawDebugString(GetWorld(), SweepResult.ImpactPoint, StringMessage, nullptr, FColor::Green, 2.0f, true);
+
+	if (OtherActor)
+	{
+		UCAttributeComponent* Attribute = Cast<UCAttributeComponent>(OtherActor->GetComponentByClass(UCAttributeComponent::StaticClass()));
+		if (Attribute)
+			Attribute->ApplyHealthChange(-50);
+	}	
 
 	Destroy();
 }

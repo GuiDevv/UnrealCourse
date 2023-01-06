@@ -3,11 +3,13 @@
 
 #include "CCharacter.h"
 
+#include "CAttributeComponent.h"
 #include "CInteractionComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "CInteractionComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 // Sets default values
@@ -22,6 +24,7 @@ ACCharacter::ACCharacter()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
 	CameraComp->SetupAttachment(SpringArmComp);
 	InteractionComp = CreateDefaultSubobject<UCInteractionComponent>("InteractionComponent");
+	AttributeComp = CreateDefaultSubobject<UCAttributeComponent>("AttributeComponent");
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	bUseControllerRotationYaw = false;
@@ -32,6 +35,13 @@ void ACCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void ACCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AttributeComp->OnHealthChanged.AddDynamic(this, &ACCharacter::OnHealthChanged);
 }
 
 void ACCharacter::MoveForward(float Value)
@@ -67,13 +77,20 @@ void ACCharacter::SpawnAbility()
 		float Distance = 2500.0f;
 		FVector Start, End;
 		FHitResult Hit;
-		FCollisionQueryParams QueryParams;
+		FCollisionObjectQueryParams QueryParams;
+		FCollisionQueryParams Params;
+		FCollisionShape Shape;
+		Shape.SetSphere(20.0f);
 
-		QueryParams.AddIgnoredActor(this);
+		QueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+		QueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+		QueryParams.AddObjectTypesToQuery(ECC_Pawn);
+		Params.AddIgnoredActor(this);
+
 		Start = CameraComp->GetComponentLocation();
-		End = (CameraComp->GetForwardVector() * Distance) + CameraComp->GetComponentLocation();
+		End = (GetControlRotation().Vector() * Distance) + CameraComp->GetComponentLocation();
 
-		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Camera, QueryParams);
+		GetWorld()->SweepSingleByObjectType(Hit, Start, End, FQuat::Identity, QueryParams, Shape, Params);
 
 		if (Hit.bBlockingHit)
 			ProjectileRotation = UKismetMathLibrary::FindLookAtRotation(GetMesh()->GetSocketLocation("Muzzle_01"), Hit.ImpactPoint);
@@ -87,6 +104,12 @@ void ACCharacter::SpawnAbility()
 		SpawnParameters.Instigator = this;
 
 		GetWorld()->SpawnActor<AActor>(ProjectileToSpawn, SpawnTM, SpawnParameters);
+		if(ProjectileToSpawn == PrimaryProjectile)
+		{
+			if(PrimaryMuzzle)
+				UGameplayStatics::SpawnEmitterAttached(PrimaryMuzzle, GetMesh(), "Muzzle_01");
+		}
+			
 	}	
 }
 
@@ -105,6 +128,25 @@ void ACCharacter::AbilityHandler(int ID)
 	}
 
 	GetWorldTimerManager().SetTimer(Attack_TimerHandler, this, &ACCharacter::SpawnAbility, 0.2);
+}
+
+void ACCharacter::OnHealthChanged(AActor* InstigatorActor, UCAttributeComponent* OwnComponent, float NewHealth,	float Delta)
+{
+	FVector Color;
+	if (Delta < 0.0f)
+	{
+		Color = FVector(1, 0, 0);
+		if(NewHealth <= 0.0f)
+		{
+			APlayerController* PC = Cast<APlayerController>(GetController());
+			DisableInput(PC);
+		}		
+	}
+	else
+		Color = FVector(0, 1, 0);
+
+	GetMesh()->SetVectorParameterValueOnMaterials("Color", Color);
+	GetMesh()->SetScalarParameterValueOnMaterials("TimeToHit", GetWorld()->TimeSeconds);	
 }
 
 // Called every frame

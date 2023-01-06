@@ -3,8 +3,10 @@
 
 #include "CBaseProjectile.h"
 
+#include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
@@ -18,6 +20,8 @@ ACBaseProjectile::ACBaseProjectile()
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>("ParticleSystemComponent");
 	ParticleSystemComponent->SetupAttachment(SphereComponent);
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>("ProjectileMovement");
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("AudioComponent");
+	AudioComponent->SetupAttachment(SphereComponent);
 
 	SphereComponent->SetCollisionProfileName("Projectile");
 
@@ -32,8 +36,39 @@ ACBaseProjectile::ACBaseProjectile()
 // Called when the game starts or when spawned
 void ACBaseProjectile::BeginPlay()
 {
-	Super::BeginPlay();
+	Super::BeginPlay();	
 	SphereComponent->IgnoreActorWhenMoving(GetInstigator(), true);
+	if (AudioComponent)
+	{
+		AudioComponent->Sound = LoopSound;
+		AudioComponent->Play();
+	}
+		
+}
+
+void ACBaseProjectile::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ACBaseProjectile::OnActorOverlap);
+}
+
+void ACBaseProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	OnProjectileOverlap();
+}
+
+void ACBaseProjectile::OnProjectileOverlap_Implementation()
+{
+	if((!IsPendingKill()))
+	{
+		if(ImpactVFX)
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactVFX, GetActorLocation(), GetActorRotation());
+		if (ImpactSound)
+			UGameplayStatics::PlaySoundAtLocation(GetWorld(), ImpactSound, GetActorLocation(), FRotator::ZeroRotator);
+		if (AudioComponent)
+			AudioComponent->Stop();
+		Destroy();
+	}
 }
 
 // Called every frame

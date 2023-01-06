@@ -21,15 +21,30 @@ public:
 
 protected:
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USphereComponent* SphereComponent;
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UProjectileMovementComponent* MovementComponent;
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UParticleSystemComponent* ParticleSystemComponent;
+	UPROPERTY(EditDefaultsOnly, Category = "VFX")
+	UParticleSystem* ImpactVFX;
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundBase* LoopSound;
+	UPROPERTY(EditDefaultsOnly, Category = "Audio")
+	USoundBase* ImpactSound;
+	UAudioComponent* AudioComponent;
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
+
+	UFUNCTION()
+	virtual void OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void OnProjectileOverlap();
+
+
 
 public:	
 	// Called every frame

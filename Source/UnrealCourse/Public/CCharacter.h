@@ -10,6 +10,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UCInteractionComponent;
 class UAnimMontage;
+class UCAttributeComponent;
 
 UCLASS()
 class UNREALCOURSE_API ACCharacter : public ACharacter
@@ -24,6 +25,8 @@ protected:
 	TSubclassOf<AActor> BlackholeProjectile;
 	UPROPERTY(EditAnywhere, Category = "Attack");
 	TSubclassOf<AActor> TeleportProjectile;
+	UPROPERTY(EditAnywhere, Category = "Attack");
+	UParticleSystem* PrimaryMuzzle;
 
 	UPROPERTY(EditAnywhere, Category = "Attack");
 	UAnimMontage* AttackMontage;
@@ -48,15 +51,21 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	UCInteractionComponent* InteractionComp;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UCAttributeComponent* AttributeComp;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void PrimaryInteract();
 	void SpawnAbility();
-
 	void AbilityHandler(int ID);
+
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor, UCAttributeComponent* OwnComponent, float NewHealth, float Delta);
 
 public:	
 	// Called every frame
